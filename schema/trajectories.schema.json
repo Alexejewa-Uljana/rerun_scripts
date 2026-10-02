@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "trajectories",
+  "type": "object",
+  "required": ["format", "agents"],
+  "properties": {
+    "format": {"const": "trajectories"},
+    "version": {"type": "integer"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "angle_units": {"enum": ["rad", "deg"]},
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "trajectory"],
+        "properties": {
+          "name": {"type": "string"},
+          "color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "radius": {"type": "number", "exclusiveMinimum": 0},
+          "body": {"enum": ["ball", "plane"]},
+          "trajectory": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "array",
+              "items": {"type": "number"},
+              "minItems": 3,
+              "maxItems": 7
+            }
+          }
+        }
+      }
+    }
+  }
+}

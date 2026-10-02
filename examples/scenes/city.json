@@ -1,0 +1,96 @@
+{
+  "format": "scene",
+  "version": 1,
+  "cell_size": 1.0,
+  "up": "z",
+  "objects": [
+    {
+      "type": "ground",
+      "n": 49,
+      "color": [
+        92,
+        132,
+        92
+      ]
+    },
+    {
+      "type": "border",
+      "n": 49,
+      "color": [
+        140,
+        190,
+        140
+      ]
+    },
+    {
+      "type": "building",
+      "x": 14,
+      "y": 14,
+      "w": 5,
+      "d": 5,
+      "h": 12,
+      "color": [
+        205,
+        207,
+        212
+      ],
+      "detail": true
+    },
+    {
+      "type": "building",
+      "x": 26,
+      "y": 24,
+      "w": 5,
+      "d": 5,
+      "h": 16,
+      "color": [
+        195,
+        198,
+        205
+      ],
+      "detail": true
+    },
+    {
+      "type": "building",
+      "x": 34,
+      "y": 20,
+      "w": 5,
+      "d": 5,
+      "h": 11,
+      "color": [
+        210,
+        206,
+        200
+      ],
+      "detail": true
+    },
+    {
+      "type": "building",
+      "x": 34,
+      "y": 36,
+      "w": 5,
+      "d": 5,
+      "h": 9,
+      "color": [
+        198,
+        203,
+        205
+      ],
+      "detail": true
+    },
+    {
+      "type": "building",
+      "x": 18,
+      "y": 34,
+      "w": 5,
+      "d": 5,
+      "h": 10,
+      "color": [
+        202,
+        200,
+        208
+      ],
+      "detail": true
+    }
+  ]
+}

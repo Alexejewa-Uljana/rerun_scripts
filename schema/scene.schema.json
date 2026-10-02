@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "scene",
+  "type": "object",
+  "required": ["format", "objects"],
+  "properties": {
+    "format": {"const": "scene"},
+    "version": {"type": "integer"},
+    "cell_size": {"type": "number", "exclusiveMinimum": 0},
+    "up": {"enum": ["z"]},
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {"enum": ["ground", "border", "building", "box", "mesh", "occupancy"]},
+          "name": {"type": "string"},
+          "n": {"type": "integer"},
+          "z": {"type": "number"},
+          "x": {"type": "number"},
+          "y": {"type": "number"},
+          "w": {"type": "number"},
+          "d": {"type": "number"},
+          "h": {"type": "number"},
+          "detail": {"type": "boolean"},
+          "center": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "size": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "vertices": {"type": "array"},
+          "faces": {"type": "array"},
+          "grid": {"type": "array"},
+          "origin": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "cell": {"type": "number"},
+          "color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}
+        }
+      }
+    }
+  }
+}
