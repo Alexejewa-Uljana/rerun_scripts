@@ -73,14 +73,33 @@ def densify_rows(rows, dt):
     return np.array(out)
 
 
-def orientation_from_path(traj_xyz, bank=4.0):
+def _smooth(a, k=5):
+    a = np.asarray(a, float)
+    n = len(a)
+    if k <= 1 or n < 3:
+        return a
+    k = min(k, n if n % 2 else n - 1)
+    if k % 2 == 0:
+        k -= 1
+    if k < 3:
+        return a
+    pad = k // 2
+    ap = np.pad(a, (pad, pad), mode="edge")
+    ker = np.ones(k) / k
+    return np.convolve(ap, ker, mode="valid")
+
+
+def orientation_from_path(traj_xyz, bank=4.0, smooth=5):
     t = traj_xyz[:, 0]
     xyz = traj_xyz[:, 1:4]
-    d = np.gradient(xyz, axis=0)
+    sm = np.column_stack([_smooth(xyz[:, i], smooth) for i in range(3)])
+    d = np.gradient(sm, axis=0)
     speed = np.linalg.norm(d, axis=1) + 1e-9
-    yaw = np.arctan2(d[:, 1], d[:, 0])
+    yaw = np.unwrap(np.arctan2(d[:, 1], d[:, 0]))
     pitch = np.arctan2(d[:, 2], np.linalg.norm(d[:, :2], axis=1))
-    roll = np.clip(-bank * np.gradient(np.unwrap(yaw)) / speed, -0.6, 0.6)
+    yaw = _smooth(yaw, smooth)
+    pitch = _smooth(pitch, smooth)
+    roll = _smooth(np.clip(-bank * np.gradient(yaw) / speed, -0.5, 0.5), smooth)
     return np.column_stack([t, xyz, roll, pitch, yaw])
 
 
