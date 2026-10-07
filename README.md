@@ -17,6 +17,7 @@ Rerun. Сцена и траектории — отдельные файлы.
     {"type": "border", "n": 49, "color": [140,190,140]},
     {"type": "building", "x": 26, "y": 24, "w": 5, "d": 5, "h": 16, "color": [195,198,205], "detail": true},
     {"type": "box", "center": [x,y,z], "size": [w,d,h], "color": [150,155,170]},
+    {"type": "cylinders", "items": [{"center": [x,y,z], "radius": 2.8, "height": 17.0}], "color": [180,160,140]},
     {"type": "mesh", "vertices": [[...]], "faces": [[...]], "color": [150,150,200]},
     {"type": "occupancy", "grid": [[0,1],[1,1]], "origin": [0,0,0], "cell": 1.0, "color": [150,155,170]}
   ]
@@ -29,6 +30,9 @@ Rerun. Сцена и траектории — отдельные файлы.
   низ от `z=0` до `z=h`. Силуэт сужается кверху (низ шире, верх уже), с окнами.
   `detail:false` рисует простой параллелепипед `w x d x h`.
 - `box` — параллелепипед: `center` — центр, `size` — размеры `[w,d,h]`; `color` — цвет.
+- `cylinders` — вертикальные цилиндры; `items` — список `{center, radius, height}`, где `center` —
+  центр основания `[x,y,z]`, цилиндр стоит на земле от `center.z` вверх на `height`. `color` — общий
+  цвет группы (можно переопределить, задав `color` внутри элемента `items`).
 - `mesh` — произвольная треугольная сетка: `vertices`, `faces`; `color` — цвет.
 - `occupancy` — сетка занятости: `grid` 2D `[H][W]` или 3D `[H][W][D]`, ненулевая клетка -> куб;
   `origin` — сдвиг, `cell` — размер клетки, `color` — цвет.
@@ -44,19 +48,33 @@ Rerun. Сцена и траектории — отдельные файлы.
     {"name": "red", "color": [220,70,60], "radius": 0.9, "body": "ball",
      "trajectory": [[t, x, y], [t, x, y]]},
     {"name": "plane", "color": [220,35,35], "radius": 1.6, "body": "plane",
-     "trajectory": [[t, x, y, z], [t, x, y, z]]}
+     "trajectory": [[t, x, y, z], [t, x, y, z]]},
+    {"name": "replanner", "color": [40,110,230], "radius": 1.2, "body": "plane",
+     "plan_color": [240,150,30], "dash": [0.7, 0.5],
+     "trajectory": [[t, x, y, z], [t, x, y, z]],
+     "plans": [
+       {"t": 0.0, "path": [[x, y, z], [x, y, z]]},
+       {"t": 3.0, "path": [[x, y, z], [x, y, z]]}
+     ]}
   ]
 }
 ```
 Поля агента:
 - `name` — имя (путь сущности в Rerun).
-- `color` — цвет тела и следа.
+- `color` — цвет тела и реального следа.
 - `radius` — радиус **описанного шара**: шар рисуется этого радиуса, модель самолёта целиком
   вписана в шар этого радиуса (размах крыльев равен длине корпуса, крылья по центру).
 - `body` — `ball` (шар) или `plane` (модель самолёта).
 - `trajectory` — строки переменной ширины: `[t,x,y]`, `[t,x,y,z]`, `[t,x,y,z,yaw]` или
   `[t,x,y,z,roll,pitch,yaw]`; недостающее дополняется нулями. Для `plane` без углов ориентация
-  считается из формы пути, с 7-широкими строками берутся заданные углы.
+  считается из формы пути (сглаженно, чтобы не было рывков на изломах), с 7-широкими строками
+  берутся заданные углы.
+- `plans` — необязательный список планируемых траекторий, по одному снимку на момент
+  перепланирования: `{"t": время, "path": [[x,y],...] или [[x,y,z],...]}`. На каждом `t` план
+  перерисовывается пунктиром и держится до следующего (Rerun показывает последний актуальный).
+  Если `plans` заданы, сплошная линия всего пути не рисуется, её заменяет меняющийся план; реальный пройденный след растёт цветом `color`.
+- `plan_color` — цвет пунктирного плана (по умолчанию оранжевый); `dash` — `[штрих, промежуток]`
+  в метрах.
 
 ### scene_traj — склейка сцены и траекторий
 ```json
@@ -95,6 +113,7 @@ scene_traj_rerun/
 │   ├── scenes/                arena.json, city.json, occupancy.json
 │   ├── trajectories/          crossing.json, overtake.json, speeds.json, city_plane.json
 │   ├── combined/              scene_traj.json (сцена + траектории)
+│   ├── showcase/              replan_ball.json, replan_cyl_plane.json (перепланирование)
 │   └── rrd/                   экспортированные .rrd
 └── requirements.txt
 ```
@@ -129,6 +148,7 @@ python validate.py examples/combined/city.json
 python render.py examples/combined/city.json
 python render.py --scene examples/scenes/arena.json --traj examples/trajectories/crossing.json
 python render.py examples/scenes/occupancy.json
+python render.py examples/showcase/replan_cyl_plane.json
 ```
 
 Экспортировать `.rrd` и открыть без Python:
