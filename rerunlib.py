@@ -339,7 +339,9 @@ def log_agent(agent, cell=1.0, angle_units="rad", densify_dt=None):
     draw_plan = not plans
     if body == "plane":
         if width < 7:
-            traj6 = orientation_from_path(traj6[:, :4])
+            smooth = int(agent.get("orient_smooth", 5))
+            bank = float(agent.get("bank", 4.0))
+            traj6 = orientation_from_path(traj6[:, :4], bank=bank, smooth=smooth)
         log_plane(path, traj6, color, radius, cell, draw_plan=draw_plan)
     else:
         log_ball(path, traj6, color, radius, cell, draw_plan=draw_plan)

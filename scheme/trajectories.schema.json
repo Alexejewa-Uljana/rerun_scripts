@@ -19,6 +19,8 @@
           "color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
           "radius": {"type": "number", "exclusiveMinimum": 0},
           "body": {"enum": ["ball", "plane"]},
+          "orient_smooth": {"type": "integer", "minimum": 1},
+          "bank": {"type": "number"},
           "plan_color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
           "dash": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
           "plans": {
