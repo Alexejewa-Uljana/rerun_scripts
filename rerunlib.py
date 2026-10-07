@@ -187,8 +187,26 @@ def log_occupancy(o, cell=1.0):
                       colors=[list(color)], fill_mode="solid"), static=True)
 
 
+def log_cylinders(objects, cell=1.0):
+    lengths, radii, centers, colors = [], [], [], []
+    for o in objects:
+        col = o.get("color", [180, 160, 140])
+        for it in o.get("items", []):
+            cx, cy, cz = (np.asarray(it["center"], float) * cell).tolist()
+            h = float(it["height"]) * cell
+            r = float(it["radius"]) * cell
+            lengths.append(h)
+            radii.append(r)
+            centers.append([cx, cy, cz + h / 2])
+            colors.append(list(it.get("color", col)))
+    if not lengths:
+        return
+    rr.log("world/scene/cylinders", rr.Cylinders3D(lengths=lengths, radii=radii, centers=centers,
+           colors=colors, fill_mode="solid"), static=True)
+
+
 def log_scene(objects, cell=1.0):
-    buildings, boxes_c, boxes_h, boxes_col = [], [], [], []
+    buildings, boxes_c, boxes_h, boxes_col, cylinders = [], [], [], [], []
     for o in objects:
         t = o["type"]
         if t == "ground":
@@ -208,16 +226,63 @@ def log_scene(objects, cell=1.0):
                              albedo_factor=o.get("color", [150, 150, 200])), static=True)
         elif t == "occupancy":
             log_occupancy(o, cell)
+        elif t == "cylinders":
+            cylinders.append(o)
     if buildings:
         log_buildings(buildings)
     if boxes_c:
         rr.log("world/scene/boxes", rr.Boxes3D(centers=boxes_c, half_sizes=boxes_h,
                colors=[list(c) for c in boxes_col], fill_mode="solid"), static=True)
+    if cylinders:
+        log_cylinders(cylinders, cell)
 
 
-def log_ball(path, traj6, color, radius, cell=1.0):
+def dash_strips(points, dash_len=0.6, gap_len=0.4):
+    P = np.asarray(points, float)
+    if len(P) < 2:
+        return [P.tolist()] if len(P) else []
+    seg = np.linalg.norm(np.diff(P, axis=0), axis=1)
+    s = np.r_[0.0, np.cumsum(seg)]
+    total = float(s[-1])
+    if total == 0:
+        return [P[:1].tolist()]
+
+    def at(d):
+        i = int(np.clip(np.searchsorted(s, d) - 1, 0, len(seg) - 1))
+        f = 0.0 if seg[i] == 0 else (d - s[i]) / seg[i]
+        return P[i] + f * (P[i + 1] - P[i])
+
+    strips, pos, on = [], 0.0, True
+    while pos < total:
+        step = dash_len if on else gap_len
+        if on:
+            strips.append([at(pos).tolist(), at(min(pos + step, total)).tolist()])
+        pos += step
+        on = not on
+    return strips
+
+
+def plan_points(path_pts, cell=1.0):
+    a = np.asarray(path_pts, float)
+    if a.ndim != 2 or len(a) == 0:
+        return np.zeros((0, 3))
+    if a.shape[1] == 2:
+        a = np.column_stack([a, np.zeros(len(a))])
+    return a[:, :3] * cell
+
+
+def log_plan_updates(path, plans, cell=1.0, color=PLAN_COLOR, dash=(0.6, 0.4), radius=0.05):
+    for p in sorted(plans, key=lambda q: q.get("t", 0.0)):
+        set_time(p.get("t", 0.0))
+        pts = plan_points(p.get("path", p.get("points", [])), cell)
+        rr.log(f"{path}/plan", rr.LineStrips3D(dash_strips(pts, dash[0], dash[1]),
+               colors=[list(color)], radii=radius))
+
+
+def log_ball(path, traj6, color, radius, cell=1.0, draw_plan=True):
     pts = traj6[:, 1:4] * cell
-    rr.log(f"{path}/plan", rr.LineStrips3D([pts], colors=[PLAN_COLOR], radii=0.06), static=True)
+    if draw_plan:
+        rr.log(f"{path}/plan", rr.LineStrips3D([pts], colors=[PLAN_COLOR], radii=0.06), static=True)
     for i in range(len(traj6)):
         set_time(traj6[i, 0])
         rr.log(f"{path}/ball", rr.Ellipsoids3D(centers=[pts[i]], half_sizes=[[radius] * 3],
@@ -225,9 +290,10 @@ def log_ball(path, traj6, color, radius, cell=1.0):
         rr.log(f"{path}/trail", rr.LineStrips3D([pts[: i + 1]], colors=[list(color)], radii=0.09))
 
 
-def log_plane(path, traj6, color, radius=DEFAULT_RADIUS, cell=1.0, wing_color=(245, 120, 110)):
+def log_plane(path, traj6, color, radius=DEFAULT_RADIUS, cell=1.0, wing_color=(245, 120, 110), draw_plan=True):
     pts = traj6[:, 1:4] * cell
-    rr.log(f"{path}/plan", rr.LineStrips3D([pts], colors=[PLAN_COLOR], radii=0.06), static=True)
+    if draw_plan:
+        rr.log(f"{path}/plan", rr.LineStrips3D([pts], colors=[PLAN_COLOR], radii=0.06), static=True)
     (fv, ff), (wv, wf) = plane_meshes(radius)
     rr.log(f"{path}/pose/fuselage", rr.Mesh3D(vertex_positions=fv, triangle_indices=ff,
            albedo_factor=list(color)), static=True)
@@ -250,12 +316,18 @@ def log_agent(agent, cell=1.0, angle_units="rad", densify_dt=None):
         rows = densify_rows(rows, densify_dt)
     traj6, width = normalize_rows(rows, angle_units)
     path = f"world/agents/{name}"
+    plans = agent.get("plans")
+    draw_plan = not plans
     if body == "plane":
         if width < 7:
             traj6 = orientation_from_path(traj6[:, :4])
-        log_plane(path, traj6, color, radius, cell)
+        log_plane(path, traj6, color, radius, cell, draw_plan=draw_plan)
     else:
-        log_ball(path, traj6, color, radius, cell)
+        log_ball(path, traj6, color, radius, cell, draw_plan=draw_plan)
+    if plans:
+        plan_color = agent.get("plan_color", PLAN_COLOR)
+        dash = agent.get("dash", [0.6, 0.4])
+        log_plan_updates(path, plans, cell, plan_color, (dash[0], dash[1]))
 
 
 def render_document(doc, name="scene_traj", save=None, densify_dt=None):

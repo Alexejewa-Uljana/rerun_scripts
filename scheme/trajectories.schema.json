@@ -19,6 +19,23 @@
           "color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
           "radius": {"type": "number", "exclusiveMinimum": 0},
           "body": {"enum": ["ball", "plane"]},
+          "plan_color": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "dash": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["t", "path"],
+              "properties": {
+                "t": {"type": "number"},
+                "path": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}
+                }
+              }
+            }
+          },
           "trajectory": {
             "type": "array",
             "minItems": 2,
